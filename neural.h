@@ -2,30 +2,17 @@
 #define NEURAL_H
 
 #include <stddef.h>
-#include <stdbool.h>
+#include "matrix.h"
 
+#define LEN(arr) sizeof(arr)/sizeof(arr[0])
 
 typedef struct {
-    size_t rows;
-    size_t cols;
-    //size_t stride;
-    double* start;
-} matrix;
+    size_t inner_layer_count;
+    matrix* weights;
+    matrix* biases;
+    matrix* activations;
+}st_neural;
 
-double get_rand_double(double low, double high);
-
-double get_element(matrix A, size_t row, size_t col);
-
-void set_element(matrix A, size_t row, size_t col, double val);
-
-matrix init_matrix(size_t rows, size_t cols,bool randomize, ...);
-
-matrix randomize_matrix(matrix A, double low, double high);
-
-matrix dot_product_matrix(matrix A, matrix B);
-
-void sum_matrix(matrix res, matrix B);
-
-void print_matrix(matrix A);
+st_neural init_neural(size_t* layers,size_t layers_count);
 
 #endif //NEURAL_H

@@ -4,5 +4,7 @@ project(NeuralNetInC C)
 set(CMAKE_C_STANDARD 11)
 
 add_executable(NeuralNetInC main.c
+        matrix.h
+        matrix.c
         neural.h
         neural.c)

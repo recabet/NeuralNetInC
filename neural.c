@@ -1,147 +1,45 @@
 #include "neural.h"
-#include <stdlib.h>
+#include "matrix.h"
 #include <stdio.h>
-#include <stdarg.h>
+#include <stdlib.h>
 
-
-
-double get_rand_double(const double low, const double high)
-{
-    return (double) rand() / (double) RAND_MAX * (high - low) + low;
-}
-
-double get_element(const matrix A, const size_t row, const size_t col)
-{
-    if (!A.start)
+st_neural init_neural(const size_t* layers, const size_t layers_count) {
+    if(layers_count<=0)
     {
-        perror("Matrix uninitialized!\n");
+        perror("Invalid number of layers!\n");
         exit(EXIT_FAILURE);
     }
-    if (row > A.rows || col > A.cols)
-    {
-        perror("Invalid index!\n");
-        exit(EXIT_FAILURE);
-    }
-    return *(A.start + A.cols * (row) + col);
-}
+    st_neural network;
+    network.inner_layer_count = layers_count - 1;
 
-
-void set_element(const matrix A, const size_t row, const size_t col, const double val)
-{
-    if (!A.start)
-    {
-        perror("Matrix uninitialized!\n");
-        exit(EXIT_FAILURE);
-    }
-    *(A.start + A.cols * (row) + col) = val;
-}
-
-matrix randomize_matrix(const matrix A, const double low, const double high)
-{
-    for (size_t i = 0; i < A.rows; ++i)
-    {
-        for (size_t j = 0; j < A.cols; ++j)
-        {
-            set_element(A, i, j, get_rand_double(low, high));
-        }
-    }
-    return A;
-}
-
-matrix init_matrix(const size_t rows, const size_t cols, const bool randomize, ...)
-{
-    matrix A = {
-        .rows = rows,
-        .cols = cols,
-        .start = malloc(rows * cols * sizeof(double))
-    };
-
-    if (!A.start)
-    {
-        perror("Could not initialize the matrix!\n");
+    network.weights = malloc(sizeof(network.weights[0]) * network.inner_layer_count);
+    if (!network.weights) {
+        perror("Malloc error for weights!\n");
         exit(EXIT_FAILURE);
     }
 
-    if (randomize)
-    {
-        va_list list;
-        va_start(list, randomize);
-        const double low = va_arg(list, double);
-        const double high = va_arg(list, double);
-        va_end(list);
-
-        A = randomize_matrix(A, low, high);
-    }
-
-    return A;
-}
-
-void print_matrix(const matrix A)
-{
-    for (size_t i = 0; i < A.rows; ++i)
-    {
-        for (size_t j = 0; j < A.cols; ++j)
-        {
-            printf("%lf ", get_element(A, i, j));
-        }
-        putchar('\n');
-    }
-}
-
-void sum_matrix(const matrix res, const matrix B)
-{
-    if (res.cols != B.cols || res.rows != B.rows)
-    {
-        perror("Invalid sizes!\n");
-        exit(EXIT_FAILURE);
-    }
-    for (size_t i = 0; i < res.rows; i++)
-    {
-        for (size_t j = 0; j < res.cols; j++)
-        {
-            set_element(res, i, j, (get_element(B, i, j) + get_element(res, i, j)));
-        }
-    }
-}
-
-matrix dot_product_matrix(const matrix A, const matrix B)
-{
-    if (!A.start || !B.start)
-    {
-        perror("Uninitialized matrices!\n");
+    network.biases = malloc(sizeof(network.biases[0]) * network.inner_layer_count);
+    if (!network.biases) {
+        perror("Malloc error for biases!\n");
+        free(network.weights);
         exit(EXIT_FAILURE);
     }
 
-    if (A.cols != B.rows)
-    {
-        perror("Size mismatch for matrix multiplication!\n");
+    network.activations = malloc(sizeof(network.activations[0]) * (1+network.inner_layer_count));
+    if (!network.activations) {
+        perror("Malloc error for activations!\n");
+        free(network.weights);
+        free(network.biases);
         exit(EXIT_FAILURE);
     }
-
-    const matrix res = {
-        .rows = A.rows,
-        .cols = B.cols,
-        .start = malloc(A.rows * B.cols * sizeof(double))
-    };
-
-    if (!res.start)
+    network.activations[0]=init_matrix(1,layers[0],false);
+    for(size_t i=0;i<network.inner_layer_count;++i)
     {
-        perror("Could not allocate memory for result matrix!\n");
-        exit(EXIT_FAILURE);
-    }
+        network.weights[i]=init_matrix(network.activations[i].cols,layers[i+1],false);
+        network.biases[i]=init_matrix(1,layers[i+1],false);
+        network.activations[i+1]=init_matrix(1,layers[i+1],false);
 
-    for (size_t i = 0; i < A.rows; ++i)
-    {
-        for (size_t j = 0; j < B.cols; ++j)
-        {
-            double sum = 0.0;
-            for (size_t k = 0; k < A.cols; ++k)
-            {
-                sum += get_element(A, i, k) * get_element(B, k, j);
-            }
-            set_element(res, i, j, sum);
-        }
     }
-
-    return res;
+    return network;
 }
+
